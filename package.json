@@ -1,0 +1,18 @@
+{
+  "name": "puzzle-battle",
+  "version": "0.0.1",
+  "description": "Who can solve the puzzle first",
+  "main": "index.js",
+  "author": "moti <moti.kor@gmail.com>",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "chessground": "^7.8.1"
+  },
+  "scripts": {
+    "dev": "parcel index.html --port 3000 --out-dir docs/",
+    "build": "NODE_ENV=production parcel build index.html --public-url ./ --out-dir docs/"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.4"
+  }
+}
