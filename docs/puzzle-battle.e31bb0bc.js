@@ -2013,7 +2013,7 @@ function debounceRedraw(redrawNow) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.processMsg = processMsg;
+exports.processData = processData;
 exports.initConnections = initConnections;
 
 var _peerjs = _interopRequireDefault(require("peerjs"));
@@ -2048,25 +2048,56 @@ function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
-function processMsg(msg) {
-  console.log("Data recieved", msg);
+function processData(data) {
+  var msg = data.message;
+  var sender = data.sender;
   var dataArr = msg.split(":");
   var command = dataArr[0];
-  var board = document.getElementById("board");
 
   switch (command) {
     case "mousepos":
+      var cursor = getCursor(sender);
       var coords = dataArr[1].split(",");
 
       var _coords = _slicedToArray(coords, 2),
           x = _coords[0],
           y = _coords[1];
 
-      var cursor = document.getElementById("cursor");
-      cursor.style.left = "".concat(parseInt(board.getBoundingClientRect().x) + parseInt(x), "px");
-      cursor.style.top = "".concat(parseInt(board.getBoundingClientRect().y) + parseInt(y), "px");
+      cursor.style.left = "".concat(parseInt(boardSize().x) + parseInt(x), "px");
+      cursor.style.top = "".concat(parseInt(boardSize().y) + parseInt(y), "px");
       break;
   }
+}
+
+function getCursor(id) {
+  var results = {};
+  return function () {
+    if (results[id]) return results[id];
+    var cursor = document.getElementById("cursor_".concat(id));
+
+    if (cursor) {
+      results[id] = cursor;
+      return cursor;
+    }
+
+    var newCursor = document.getElementById("openhand").cloneNode();
+    newCursor.className = "cursor";
+    newCursor.style.display = "block";
+    newCursor.id = "cursor_".concat(id);
+    newCursor.alt = "";
+    document.body.appendChild(newCursor);
+    return newCursor;
+  }();
+}
+
+function boardSize() {
+  var boardSize;
+  return function () {
+    if (boardSize) return boardSize;
+    var board = document.getElementById("board");
+    boardSize = board.getBoundingClientRect();
+    return boardSize;
+  }();
 }
 
 function initBoard() {
@@ -2134,8 +2165,8 @@ function initConnections() {
     });
     connection.on("data", function (data) {
       // console.log("Recvied data:\n", data);
-      if (data.sended !== "SYSTEM") {
-        processMsg(data.message);
+      if (data.sender !== "SYSTEM" && data.sender !== peerId) {
+        processData(data);
       }
 
       broadcast(_objectSpread(_objectSpread({}, data), {}, {
@@ -2177,6 +2208,11 @@ function initConnections() {
     });
     hostConnection.on("data", function (data) {
       console.log("Recvied data:\n", data);
+
+      if (data.sender !== "SYSTEM") {
+        processData(data);
+      }
+
       updatePeerList(data.peers);
     });
     hostConnection.on("close", function () {

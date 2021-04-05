@@ -1,24 +1,49 @@
 import Peer from "peerjs";
 import { Chessground } from "chessground";
 
-export function processMsg(msg) {
-  console.log("Data recieved", msg);
+export function processData(data) {
+  const msg = data.message;
+  const sender = data.sender;
   const dataArr = msg.split(":");
   const command = dataArr[0];
-  const board = document.getElementById("board");
   switch (command) {
     case "mousepos":
+      const cursor = getCursor(sender);
       const coords = dataArr[1].split(",");
       const [x, y] = coords;
-      const cursor = document.getElementById("cursor");
-      cursor.style.left = `${
-        parseInt(board.getBoundingClientRect().x) + parseInt(x)
-      }px`;
-      cursor.style.top = `${
-        parseInt(board.getBoundingClientRect().y) + parseInt(y)
-      }px`;
+      cursor.style.left = `${parseInt(boardSize().x) + parseInt(x)}px`;
+      cursor.style.top = `${parseInt(boardSize().y) + parseInt(y)}px`;
       break;
   }
+}
+
+function getCursor(id) {
+  let results = {};
+  return (function () {
+    if (results[id]) return results[id];
+    const cursor = document.getElementById(`cursor_${id}`);
+    if (cursor) {
+      results[id] = cursor;
+      return cursor;
+    }
+    const newCursor = document.getElementById("openhand").cloneNode();
+    newCursor.className = "cursor";
+    newCursor.style.display = "block";
+    newCursor.id = `cursor_${id}`;
+    newCursor.alt = "";
+    document.body.appendChild(newCursor);
+    return newCursor;
+  })();
+}
+
+function boardSize() {
+  let boardSize;
+  return (function () {
+    if (boardSize) return boardSize;
+    const board = document.getElementById("board");
+    boardSize = board.getBoundingClientRect();
+    return boardSize;
+  })();
 }
 
 function initBoard() {
@@ -98,8 +123,8 @@ export function initConnections() {
 
     connection.on("data", (data) => {
       // console.log("Recvied data:\n", data);
-      if (data.sended !== "SYSTEM") {
-        processMsg(data.message);
+      if (data.sender !== "SYSTEM" && data.sender !== peerId) {
+        processData(data);
       }
 
       broadcast({
@@ -151,6 +176,9 @@ export function initConnections() {
 
     hostConnection.on("data", (data) => {
       console.log("Recvied data:\n", data);
+      if (data.sender !== "SYSTEM") {
+        processData(data);
+      }
 
       updatePeerList(data.peers);
     });
