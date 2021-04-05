@@ -1935,13 +1935,13 @@ function debounceRedraw(redrawNow) {
     };
 }
 
-},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"host.js":[function(require,module,exports) {
+},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"protocol.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.initialize = initialize;
+exports.processData = processData;
 
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
 
@@ -1954,6 +1954,36 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
 function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
 
 function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
+function processData(data) {
+  console.log("Data recieved", data);
+  var dataArr = data.split(":");
+  var command = dataArr[0];
+  var board = document.getElementById("board");
+
+  switch (command) {
+    case "mousepos":
+      var coords = dataArr[1].split(",");
+
+      var _coords = _slicedToArray(coords, 2),
+          x = _coords[0],
+          y = _coords[1];
+
+      var cursor = document.getElementById("cursor");
+      cursor.style.left = "".concat(parseInt(board.getBoundingClientRect().x) + parseInt(x), "px");
+      cursor.style.top = "".concat(parseInt(board.getBoundingClientRect().y) + parseInt(y), "px");
+      break;
+  }
+}
+},{}],"host.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.initialize = initialize;
+
+var _protocol = require("./protocol");
 
 var lastPeerId = null;
 var peer = null; // Own peer object
@@ -2018,32 +2048,18 @@ function initialize() {
 
 
 function ready() {
+  document.getElementById("board").addEventListener("mousemove", function (e) {
+    conn.send("mousepos:".concat(e.offsetX, ",").concat(e.offsetY));
+  });
   conn.on("data", function (data) {
-    console.log("Data recieved", data);
-    var dataArr = data.split(":");
-    var command = dataArr[0];
-    var board = document.getElementById("board");
-
-    switch (command) {
-      case "mousepos":
-        var coords = dataArr[1].split(",");
-
-        var _coords = _slicedToArray(coords, 2),
-            x = _coords[0],
-            y = _coords[1];
-
-        var cursor = document.getElementById("cursor");
-        cursor.style.left = "".concat(parseInt(board.getBoundingClientRect().x) + parseInt(x), "px");
-        cursor.style.top = "".concat(parseInt(board.getBoundingClientRect().y) + parseInt(y), "px");
-        break;
-    }
+    (0, _protocol.processData)(data);
   });
   conn.on("close", function () {
     status.innerHTML = "Connection reset<br>Awaiting connection...";
     conn = null;
   });
 }
-},{}],"guest.js":[function(require,module,exports) {
+},{"./protocol":"protocol.js"}],"guest.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2051,6 +2067,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.initialize = initialize;
 exports.join = join;
+
+var _protocol = require("./protocol");
+
 var lastPeerId = null;
 var peer = null; // own peer object
 
@@ -2082,7 +2101,7 @@ function initialize() {
   peer.on("connection", function (c) {
     // Disallow incoming connections
     c.on("open", function () {
-      c.send("Sender does not accept incoming connections");
+      c.send("guest does not accept incoming connections");
       setTimeout(function () {
         c.close();
       }, 500);
@@ -2135,30 +2154,13 @@ function join(id) {
     document.getElementById("board").addEventListener("mousemove", function (e) {
       conn.send("mousepos:".concat(e.offsetX, ",").concat(e.offsetY));
     });
-  }); // Handle incoming data (messages only since this is the signal sender)
-
-  conn.on("data", function (data) {
-    console.log(("Data: ", data));
   });
+  conn.on("data", _protocol.processData);
   conn.on("close", function () {
     status.innerHTML = "Connection closed";
   });
 }
-/**
- * Send a signal via the peer connection and add it to the log.
- * This will only occur if the connection is still alive.
- */
-
-
-function signal(sigName) {
-  if (conn && conn.open) {
-    conn.send(sigName);
-    console.log(sigName + " signal sent");
-  } else {
-    console.log("Connection is closed");
-  }
-}
-},{}],"node_modules/peerjs/dist/peerjs.min.js":[function(require,module,exports) {
+},{"./protocol":"protocol.js"}],"node_modules/peerjs/dist/peerjs.min.js":[function(require,module,exports) {
 var define;
 parcelRequire=function(e,r,t,n){var i,o="function"==typeof parcelRequire&&parcelRequire,u="function"==typeof require&&require;function f(t,n){if(!r[t]){if(!e[t]){var i="function"==typeof parcelRequire&&parcelRequire;if(!n&&i)return i(t,!0);if(o)return o(t,!0);if(u&&"string"==typeof t)return u(t);var c=new Error("Cannot find module '"+t+"'");throw c.code="MODULE_NOT_FOUND",c}p.resolve=function(r){return e[t][1][r]||r},p.cache={};var l=r[t]=new f.Module(t);e[t][0].call(l.exports,p,l,l.exports,this)}return r[t].exports;function p(e){return f(p.resolve(e))}}f.isParcelRequire=!0,f.Module=function(e){this.id=e,this.bundle=f,this.exports={}},f.modules=e,f.cache=r,f.parent=o,f.register=function(r,t){e[r]=[function(e,r){r.exports=t},{}]};for(var c=0;c<t.length;c++)try{f(t[c])}catch(e){i||(i=e)}if(t.length){var l=f(t[t.length-1]);"object"==typeof exports&&"undefined"!=typeof module?module.exports=l:"function"==typeof define&&define.amd?define(function(){return l}):n&&(this[n]=l)}if(parcelRequire=f,i)throw i;return f}({"EgBh":[function(require,module,exports) {
 var e={};e.useBlobBuilder=function(){try{return new Blob([]),!1}catch(e){return!0}}(),e.useArrayBufferView=!e.useBlobBuilder&&function(){try{return 0===new Blob([new Uint8Array([])]).size}catch(e){return!0}}(),module.exports.binaryFeatures=e;var r=module.exports.BlobBuilder;function t(){this._pieces=[],this._parts=[]}"undefined"!=typeof window&&(r=module.exports.BlobBuilder=window.WebKitBlobBuilder||window.MozBlobBuilder||window.MSBlobBuilder||window.BlobBuilder),t.prototype.append=function(e){"number"==typeof e?this._pieces.push(e):(this.flush(),this._parts.push(e))},t.prototype.flush=function(){if(this._pieces.length>0){var r=new Uint8Array(this._pieces);e.useArrayBufferView||(r=r.buffer),this._parts.push(r),this._pieces=[]}},t.prototype.getBuffer=function(){if(this.flush(),e.useBlobBuilder){for(var t=new r,i=0,u=this._parts.length;i<u;i++)t.append(this._parts[i]);return t.getBlob()}return new Blob(this._parts)},module.exports.BufferBuilder=t;

@@ -1,3 +1,5 @@
+import { processData } from "./protocol";
+
 var lastPeerId = null;
 var peer = null; // Own peer object
 var peerId = null;
@@ -33,6 +35,7 @@ export function initialize() {
     );
     status.innerHTML = "Awaiting connection...";
   });
+
   peer.on("connection", function (c) {
     conn = c;
     console.log("Connected to: " + conn.peer);
@@ -63,24 +66,11 @@ export function initialize() {
  * Defines callbacks to handle incoming data and connection events.
  */
 function ready() {
-  conn.on("data", function (data) {
-    console.log("Data recieved", data);
-    const dataArr = data.split(":");
-    const command = dataArr[0];
-    const board = document.getElementById("board");
-    switch (command) {
-      case "mousepos":
-        const coords = dataArr[1].split(",");
-        const [x, y] = coords;
-        const cursor = document.getElementById("cursor");
-        cursor.style.left = `${
-          parseInt(board.getBoundingClientRect().x) + parseInt(x)
-        }px`;
-        cursor.style.top = `${
-          parseInt(board.getBoundingClientRect().y) + parseInt(y)
-        }px`;
-        break;
-    }
+  document.getElementById("board").addEventListener("mousemove", (e) => {
+    conn.send(`mousepos:${e.offsetX},${e.offsetY}`);
+  });
+  conn.on("data", (data) => {
+    processData(data);
   });
   conn.on("close", function () {
     status.innerHTML = "Connection reset<br>Awaiting connection...";

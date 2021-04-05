@@ -1,3 +1,5 @@
+import { processData } from "./protocol";
+
 var lastPeerId = null;
 var peer = null; // own peer object
 var conn = null;
@@ -29,7 +31,7 @@ export function initialize() {
   peer.on("connection", function (c) {
     // Disallow incoming connections
     c.on("open", function () {
-      c.send("Sender does not accept incoming connections");
+      c.send("guest does not accept incoming connections");
       setTimeout(function () {
         c.close();
       }, 500);
@@ -82,24 +84,9 @@ export function join(id) {
       conn.send(`mousepos:${e.offsetX},${e.offsetY}`);
     });
   });
-  // Handle incoming data (messages only since this is the signal sender)
-  conn.on("data", function (data) {
-    console.log(("Data: ", data));
-  });
+
+  conn.on("data", processData);
   conn.on("close", function () {
     status.innerHTML = "Connection closed";
   });
-}
-
-/**
- * Send a signal via the peer connection and add it to the log.
- * This will only occur if the connection is still alive.
- */
-function signal(sigName) {
-  if (conn && conn.open) {
-    conn.send(sigName);
-    console.log(sigName + " signal sent");
-  } else {
-    console.log("Connection is closed");
-  }
 }
