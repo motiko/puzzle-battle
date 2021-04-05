@@ -2,8 +2,6 @@ var lastPeerId = null;
 var peer = null; // own peer object
 var conn = null;
 var status = document.getElementById("status");
-var connectButton = document.getElementById("connect-button");
-var cueString = '<span class="cueMsg">Cue: </span>';
 
 /**
  * Create the Peer object for our end of the connection.
@@ -54,6 +52,7 @@ export function initialize() {
   peer.on("error", function (err) {
     console.log(err);
   });
+  var connectButton = document.getElementById("connect-button");
   connectButton.addEventListener("click", () => join());
 }
 
@@ -79,33 +78,17 @@ export function join(id) {
   conn.on("open", function () {
     status.innerHTML = "Connected to: " + conn.peer;
     console.log("Connected to: " + conn.peer);
-
-    // Check URL params for comamnds that should be sent immediately
-    var command = getUrlParam("command");
-    if (command) conn.send(command);
+    document.getElementById("board").addEventListener("mousemove", (e) => {
+      conn.send(`mousepos:${e.offsetX},${e.offsetY}`);
+    });
   });
   // Handle incoming data (messages only since this is the signal sender)
   conn.on("data", function (data) {
-    console.log(data);
+    console.log(("Data: ", data));
   });
   conn.on("close", function () {
     status.innerHTML = "Connection closed";
   });
-}
-
-/**
- * Get first "GET style" parameter from href.
- * This enables delivering an initial command upon page load.
- *
- * Would have been easier to use location.hash.
- */
-function getUrlParam(name) {
-  name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-  var regexS = "[\\?&]" + name + "=([^&#]*)";
-  var regex = new RegExp(regexS);
-  var results = regex.exec(window.location.href);
-  if (results == null) return null;
-  else return results[1];
 }
 
 /**

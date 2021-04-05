@@ -1,0 +1,1 @@
+{"version":3,"sources":["main.css"],"names":[],"mappings":"AAAA;AACA;AACA;AACA;AACA","file":"main.af46ece4.css","sourceRoot":"..","sourcesContent":["#cursor {\n  position: fixed;\n  z-index: 3;\n}\n"]}

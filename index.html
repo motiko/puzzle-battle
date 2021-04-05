@@ -5,37 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="assets/chessground.css" />
     <link rel="stylesheet" href="assets/theme.css" />
+    <link rel="stylesheet" href="main.css" />
   </head>
   <body>
     <section class="blue merida">
+      <img src="./openhand.svg" alt="" width="25" height="25" id="cursor" />
       <div id="board"></div>
     </section>
-    <br/>
-    <br/>
-    <br/>
-    <br/>
-        <table class="display">
-            <tr>
-                <td class="title">Status:</td>
-            </tr>
-            <tr>
-                <td>
-                    <div id="my-id" style="font-weight: bold;" title="Copy this ID to the input on send.html.">ID:</div>
-                </td>
-            </tr>
-            <tr>
-                <td><div id="status" class="status"></div></td>
-                <td><div class="message" id="message"></div></td>
-            </tr>
-            <tr>
-                <td>
-                    <span style="font-weight: bold">ID: </span>
-                    <input type="text" id="receiver-id" title="Input the ID from receive.html">
-                    <button id="connect-button">Connect</button>
-                </td>
-            </tr>
-        </table>
+    <br />
+    <br />
+    <br />
+    <br />
+    <table class="display">
+      <tr>
+        <td class="title">Status:</td>
+      </tr>
+      <tr>
+        <td>
+          <div
+            id="my-id"
+            style="font-weight: bold;"
+            title="Copy this ID to the input on send.html."
+          >
+            ID:
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td><div id="status" class="status"></div></td>
+        <td><div class="message" id="message"></div></td>
+      </tr>
+      <tr>
+        <td>
+          <span style="font-weight: bold;">ID: </span>
+          <input
+            type="text"
+            id="receiver-id"
+            title="Input the ID from receive.html"
+          />
+          <button id="connect-button">Connect</button>
+        </td>
+      </tr>
+    </table>
     <script src="./index.js"></script>
   </body>
 </html>
-

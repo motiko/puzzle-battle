@@ -3,16 +3,17 @@ import { initialize as initializeReceiver } from "./receiver";
 import { initialize as initializeSender, join } from "./sender";
 import Peer from "peerjs";
 
+if (module.hot) {
+  module.hot.accept();
+}
 let path = location.pathname.substr(1);
 
 if (path) {
-  console.log("sender");
   initializeSender();
   setTimeout(() => {
     join(path);
   }, 1000);
 } else {
-  console.log("receiver");
   initializeReceiver();
 }
 

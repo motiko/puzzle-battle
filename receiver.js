@@ -12,7 +12,6 @@ var status = document.getElementById("status");
  */
 export function initialize() {
   // Create own peer object with connection to shared PeerJS server
-  var recvId = document.getElementById("my-id");
   peer = new Peer(null, {
     debug: 2,
   });
@@ -27,21 +26,14 @@ export function initialize() {
     }
 
     console.log("ID: " + peer.id);
-    recvId.innerHTML = "ID: " + peer.id;
+    window.history.pushState(
+      { path: `${location.pathname}/${peer.id}` },
+      "",
+      location + peer.id
+    );
     status.innerHTML = "Awaiting connection...";
   });
   peer.on("connection", function (c) {
-    // Allow only a single connection
-    if (conn && conn.open) {
-      c.on("open", function () {
-        c.send("Already connected to another client");
-        setTimeout(function () {
-          c.close();
-        }, 500);
-      });
-      return;
-    }
-
     conn = c;
     console.log("Connected to: " + conn.peer);
     status.innerHTML = "Connected";
@@ -72,7 +64,23 @@ export function initialize() {
  */
 function ready() {
   conn.on("data", function (data) {
-    console.log("Data recieved");
+    console.log("Data recieved", data);
+    const dataArr = data.split(":");
+    const command = dataArr[0];
+    const board = document.getElementById("board");
+    switch (command) {
+      case "mousepos":
+        const coords = dataArr[1].split(",");
+        const [x, y] = coords;
+        const cursor = document.getElementById("cursor");
+        cursor.style.left = `${
+          parseInt(board.getBoundingClientRect().x) + parseInt(x)
+        }px`;
+        cursor.style.top = `${
+          parseInt(board.getBoundingClientRect().y) + parseInt(y)
+        }px`;
+        break;
+    }
   });
   conn.on("close", function () {
     status.innerHTML = "Connection reset<br>Awaiting connection...";

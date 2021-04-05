@@ -1942,6 +1942,19 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.initialize = initialize;
+
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+
+function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
 var lastPeerId = null;
 var peer = null; // Own peer object
 
@@ -1957,7 +1970,6 @@ var status = document.getElementById("status");
 
 function initialize() {
   // Create own peer object with connection to shared PeerJS server
-  var recvId = document.getElementById("my-id");
   peer = new Peer(null, {
     debug: 2
   });
@@ -1971,21 +1983,12 @@ function initialize() {
     }
 
     console.log("ID: " + peer.id);
-    recvId.innerHTML = "ID: " + peer.id;
+    window.history.pushState({
+      path: "".concat(location.pathname, "/").concat(peer.id)
+    }, "", location + peer.id);
     status.innerHTML = "Awaiting connection...";
   });
   peer.on("connection", function (c) {
-    // Allow only a single connection
-    if (conn && conn.open) {
-      c.on("open", function () {
-        c.send("Already connected to another client");
-        setTimeout(function () {
-          c.close();
-        }, 500);
-      });
-      return;
-    }
-
     conn = c;
     console.log("Connected to: " + conn.peer);
     status.innerHTML = "Connected";
@@ -2016,7 +2019,24 @@ function initialize() {
 
 function ready() {
   conn.on("data", function (data) {
-    console.log("Data recieved");
+    console.log("Data recieved", data);
+    var dataArr = data.split(":");
+    var command = dataArr[0];
+    var board = document.getElementById("board");
+
+    switch (command) {
+      case "mousepos":
+        var coords = dataArr[1].split(",");
+
+        var _coords = _slicedToArray(coords, 2),
+            x = _coords[0],
+            y = _coords[1];
+
+        var cursor = document.getElementById("cursor");
+        cursor.style.left = "".concat(parseInt(board.getBoundingClientRect().x) + parseInt(x), "px");
+        cursor.style.top = "".concat(parseInt(board.getBoundingClientRect().y) + parseInt(y), "px");
+        break;
+    }
   });
   conn.on("close", function () {
     status.innerHTML = "Connection reset<br>Awaiting connection...";
@@ -2036,8 +2056,6 @@ var peer = null; // own peer object
 
 var conn = null;
 var status = document.getElementById("status");
-var connectButton = document.getElementById("connect-button");
-var cueString = '<span class="cueMsg">Cue: </span>';
 /**
  * Create the Peer object for our end of the connection.
  *
@@ -2086,6 +2104,7 @@ function initialize() {
   peer.on("error", function (err) {
     console.log(err);
   });
+  var connectButton = document.getElementById("connect-button");
   connectButton.addEventListener("click", function () {
     return join();
   });
@@ -2112,33 +2131,18 @@ function join(id) {
   });
   conn.on("open", function () {
     status.innerHTML = "Connected to: " + conn.peer;
-    console.log("Connected to: " + conn.peer); // Check URL params for comamnds that should be sent immediately
-
-    var command = getUrlParam("command");
-    if (command) conn.send(command);
+    console.log("Connected to: " + conn.peer);
+    document.getElementById("board").addEventListener("mousemove", function (e) {
+      conn.send("mousepos:".concat(e.offsetX, ",").concat(e.offsetY));
+    });
   }); // Handle incoming data (messages only since this is the signal sender)
 
   conn.on("data", function (data) {
-    console.log(data);
+    console.log(("Data: ", data));
   });
   conn.on("close", function () {
     status.innerHTML = "Connection closed";
   });
-}
-/**
- * Get first "GET style" parameter from href.
- * This enables delivering an initial command upon page load.
- *
- * Would have been easier to use location.hash.
- */
-
-
-function getUrlParam(name) {
-  name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-  var regexS = "[\\?&]" + name + "=([^&#]*)";
-  var regex = new RegExp(regexS);
-  var results = regex.exec(window.location.href);
-  if (results == null) return null;else return results[1];
 }
 /**
  * Send a signal via the peer connection and add it to the log.
@@ -2239,16 +2243,18 @@ var _peerjs = _interopRequireDefault(require("peerjs"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+if (module.hot) {
+  module.hot.accept();
+}
+
 var path = location.pathname.substr(1);
 
 if (path) {
-  console.log("sender");
   (0, _sender.initialize)();
   setTimeout(function () {
     (0, _sender.join)(path);
   }, 1000);
 } else {
-  console.log("receiver");
   (0, _receiver.initialize)();
 }
 
@@ -2285,7 +2291,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55610" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "65436" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
