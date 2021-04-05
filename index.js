@@ -1,45 +1,19 @@
 import { Chessground } from "chessground";
-
+import { initialize as initializeReceiver } from "./receiver";
+import { initialize as initializeSender, join } from "./sender";
 import Peer from "peerjs";
 
 let path = location.pathname.substr(1);
+
 if (path) {
-  console.log("!!!", path);
-  const peer = new Peer(null, {
-    debug: 2,
-  });
-  const conn = peer.connect(path);
-  conn.on("open", () => {
-    conn.send("hi!");
-    console.log("sent hi");
-  });
+  console.log("sender");
+  initializeSender();
+  setTimeout(() => {
+    join(path);
+  }, 1000);
 } else {
-  const peer = new Peer(null, {
-    debug: 2,
-  });
-  peer.on("open", function (id) {
-    console.log("My peer ID is: " + id);
-    // location.replace(id);
-  });
-  peer.on("connection", (conn) => {
-    console.log("123 connected");
-    conn.on("data", (data) => {
-      // Will print 'hi!'
-      console.log(data);
-    });
-    conn.on("open", () => {
-      conn.send("hello!");
-    });
-    peer.on("disconnected", function () {
-      console.log("Connection lost. Please reconnect");
-    });
-    peer.on("close", function () {
-      console.log("Connection destroyed");
-    });
-    peer.on("error", function (err) {
-      console.log(err);
-    });
-  });
+  console.log("receiver");
+  initializeReceiver();
 }
 
 const config = { fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" };

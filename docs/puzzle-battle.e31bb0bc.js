@@ -1935,7 +1935,226 @@ function debounceRedraw(redrawNow) {
     };
 }
 
-},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"node_modules/peerjs/dist/peerjs.min.js":[function(require,module,exports) {
+},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"receiver.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.initialize = initialize;
+var lastPeerId = null;
+var peer = null; // Own peer object
+
+var peerId = null;
+var conn = null;
+var status = document.getElementById("status");
+/**
+ * Create the Peer object for our end of the connection.
+ *
+ * Sets up callbacks that handle any events related to our
+ * peer object.
+ */
+
+function initialize() {
+  // Create own peer object with connection to shared PeerJS server
+  var recvId = document.getElementById("my-id");
+  peer = new Peer(null, {
+    debug: 2
+  });
+  peer.on("open", function (id) {
+    // Workaround for peer.reconnect deleting previous id
+    if (peer.id === null) {
+      console.log("Received null id from peer open");
+      peer.id = lastPeerId;
+    } else {
+      lastPeerId = peer.id;
+    }
+
+    console.log("ID: " + peer.id);
+    recvId.innerHTML = "ID: " + peer.id;
+    status.innerHTML = "Awaiting connection...";
+  });
+  peer.on("connection", function (c) {
+    // Allow only a single connection
+    if (conn && conn.open) {
+      c.on("open", function () {
+        c.send("Already connected to another client");
+        setTimeout(function () {
+          c.close();
+        }, 500);
+      });
+      return;
+    }
+
+    conn = c;
+    console.log("Connected to: " + conn.peer);
+    status.innerHTML = "Connected";
+    ready();
+  });
+  peer.on("disconnected", function () {
+    status.innerHTML = "Connection lost. Please reconnect";
+    console.log("Connection lost. Please reconnect"); // Workaround for peer.reconnect deleting previous id
+
+    peer.id = lastPeerId;
+    peer._lastServerId = lastPeerId;
+    peer.reconnect();
+  });
+  peer.on("close", function () {
+    conn = null;
+    status.innerHTML = "Connection destroyed. Please refresh";
+    console.log("Connection destroyed");
+  });
+  peer.on("error", function (err) {
+    console.log(err);
+  });
+}
+/**
+ * Triggered once a connection has been achieved.
+ * Defines callbacks to handle incoming data and connection events.
+ */
+
+
+function ready() {
+  conn.on("data", function (data) {
+    console.log("Data recieved");
+  });
+  conn.on("close", function () {
+    status.innerHTML = "Connection reset<br>Awaiting connection...";
+    conn = null;
+  });
+}
+},{}],"sender.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.initialize = initialize;
+exports.join = join;
+var lastPeerId = null;
+var peer = null; // own peer object
+
+var conn = null;
+var status = document.getElementById("status");
+var connectButton = document.getElementById("connect-button");
+var cueString = '<span class="cueMsg">Cue: </span>';
+/**
+ * Create the Peer object for our end of the connection.
+ *
+ * Sets up callbacks that handle any events related to our
+ * peer object.
+ */
+
+function initialize() {
+  // Create own peer object with connection to shared PeerJS server
+  peer = new Peer(null, {
+    debug: 2
+  });
+  peer.on("open", function (id) {
+    // Workaround for peer.reconnect deleting previous id
+    if (peer.id === null) {
+      console.log("Received null id from peer open");
+      peer.id = lastPeerId;
+    } else {
+      lastPeerId = peer.id;
+    }
+
+    console.log("ID: " + peer.id);
+  });
+  peer.on("connection", function (c) {
+    // Disallow incoming connections
+    c.on("open", function () {
+      c.send("Sender does not accept incoming connections");
+      setTimeout(function () {
+        c.close();
+      }, 500);
+    });
+  });
+  peer.on("disconnected", function () {
+    status.innerHTML = "Connection lost. Please reconnect";
+    console.log("Connection lost. Please reconnect"); // Workaround for peer.reconnect deleting previous id
+
+    peer.id = lastPeerId;
+    peer._lastServerId = lastPeerId;
+    peer.reconnect();
+  });
+  peer.on("close", function () {
+    conn = null;
+    status.innerHTML = "Connection destroyed. Please refresh";
+    console.log("Connection destroyed");
+  });
+  peer.on("error", function (err) {
+    console.log(err);
+  });
+  connectButton.addEventListener("click", function () {
+    return join();
+  });
+}
+/**
+ * Create the connection between the two Peers.
+ *
+ * Sets up callbacks that handle any events related to the
+ * connection and data received on it.
+ */
+
+
+function join(id) {
+  // Close old connection
+  if (conn) {
+    conn.close();
+  }
+
+  console.log(id);
+  var recvIdInput = document.getElementById("receiver-id"); // Create connection to destination peer specified in the input field
+
+  conn = peer.connect(id || recvIdInput.value, {
+    reliable: true
+  });
+  conn.on("open", function () {
+    status.innerHTML = "Connected to: " + conn.peer;
+    console.log("Connected to: " + conn.peer); // Check URL params for comamnds that should be sent immediately
+
+    var command = getUrlParam("command");
+    if (command) conn.send(command);
+  }); // Handle incoming data (messages only since this is the signal sender)
+
+  conn.on("data", function (data) {
+    console.log(data);
+  });
+  conn.on("close", function () {
+    status.innerHTML = "Connection closed";
+  });
+}
+/**
+ * Get first "GET style" parameter from href.
+ * This enables delivering an initial command upon page load.
+ *
+ * Would have been easier to use location.hash.
+ */
+
+
+function getUrlParam(name) {
+  name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+  var regexS = "[\\?&]" + name + "=([^&#]*)";
+  var regex = new RegExp(regexS);
+  var results = regex.exec(window.location.href);
+  if (results == null) return null;else return results[1];
+}
+/**
+ * Send a signal via the peer connection and add it to the log.
+ * This will only occur if the connection is still alive.
+ */
+
+
+function signal(sigName) {
+  if (conn && conn.open) {
+    conn.send(sigName);
+    console.log(sigName + " signal sent");
+  } else {
+    console.log("Connection is closed");
+  }
+}
+},{}],"node_modules/peerjs/dist/peerjs.min.js":[function(require,module,exports) {
 var define;
 parcelRequire=function(e,r,t,n){var i,o="function"==typeof parcelRequire&&parcelRequire,u="function"==typeof require&&require;function f(t,n){if(!r[t]){if(!e[t]){var i="function"==typeof parcelRequire&&parcelRequire;if(!n&&i)return i(t,!0);if(o)return o(t,!0);if(u&&"string"==typeof t)return u(t);var c=new Error("Cannot find module '"+t+"'");throw c.code="MODULE_NOT_FOUND",c}p.resolve=function(r){return e[t][1][r]||r},p.cache={};var l=r[t]=new f.Module(t);e[t][0].call(l.exports,p,l,l.exports,this)}return r[t].exports;function p(e){return f(p.resolve(e))}}f.isParcelRequire=!0,f.Module=function(e){this.id=e,this.bundle=f,this.exports={}},f.modules=e,f.cache=r,f.parent=o,f.register=function(r,t){e[r]=[function(e,r){r.exports=t},{}]};for(var c=0;c<t.length;c++)try{f(t[c])}catch(e){i||(i=e)}if(t.length){var l=f(t[t.length-1]);"object"==typeof exports&&"undefined"!=typeof module?module.exports=l:"function"==typeof define&&define.amd?define(function(){return l}):n&&(this[n]=l)}if(parcelRequire=f,i)throw i;return f}({"EgBh":[function(require,module,exports) {
 var e={};e.useBlobBuilder=function(){try{return new Blob([]),!1}catch(e){return!0}}(),e.useArrayBufferView=!e.useBlobBuilder&&function(){try{return 0===new Blob([new Uint8Array([])]).size}catch(e){return!0}}(),module.exports.binaryFeatures=e;var r=module.exports.BlobBuilder;function t(){this._pieces=[],this._parts=[]}"undefined"!=typeof window&&(r=module.exports.BlobBuilder=window.WebKitBlobBuilder||window.MozBlobBuilder||window.MSBlobBuilder||window.BlobBuilder),t.prototype.append=function(e){"number"==typeof e?this._pieces.push(e):(this.flush(),this._parts.push(e))},t.prototype.flush=function(){if(this._pieces.length>0){var r=new Uint8Array(this._pieces);e.useArrayBufferView||(r=r.buffer),this._parts.push(r),this._pieces=[]}},t.prototype.getBuffer=function(){if(this.flush(),e.useBlobBuilder){for(var t=new r,i=0,u=this._parts.length;i<u;i++)t.append(this._parts[i]);return t.getBlob()}return new Blob(this._parts)},module.exports.BufferBuilder=t;
@@ -2012,6 +2231,10 @@ var t=require("./bufferbuilder").BufferBuilder,e=require("./bufferbuilder").bina
 
 var _chessground = require("chessground");
 
+var _receiver = require("./receiver");
+
+var _sender = require("./sender");
+
 var _peerjs = _interopRequireDefault(require("peerjs"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -2019,46 +2242,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var path = location.pathname.substr(1);
 
 if (path) {
-  console.log("!!!", path);
-  var peer = new _peerjs.default(null, {
-    debug: 2
-  });
-  var conn = peer.connect(path);
-  conn.on("open", function () {
-    conn.send("hi!");
-    console.log("sent hi");
-  });
+  console.log("sender");
+  (0, _sender.initialize)();
+  setTimeout(function () {
+    (0, _sender.join)(path);
+  }, 1000);
 } else {
-  var _peer = new _peerjs.default(null, {
-    debug: 2
-  });
-
-  _peer.on("open", function (id) {
-    console.log("My peer ID is: " + id); // location.replace(id);
-  });
-
-  _peer.on("connection", function (conn) {
-    console.log("123 connected");
-    conn.on("data", function (data) {
-      // Will print 'hi!'
-      console.log(data);
-    });
-    conn.on("open", function () {
-      conn.send("hello!");
-    });
-
-    _peer.on("disconnected", function () {
-      console.log("Connection lost. Please reconnect");
-    });
-
-    _peer.on("close", function () {
-      console.log("Connection destroyed");
-    });
-
-    _peer.on("error", function (err) {
-      console.log(err);
-    });
-  });
+  console.log("receiver");
+  (0, _receiver.initialize)();
 }
 
 var config = {
@@ -2066,7 +2257,7 @@ var config = {
 };
 var board = document.getElementById("board");
 var ground = (0, _chessground.Chessground)(board, config);
-},{"chessground":"node_modules/chessground/chessground.js","peerjs":"node_modules/peerjs/dist/peerjs.min.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"chessground":"node_modules/chessground/chessground.js","./receiver":"receiver.js","./sender":"sender.js","peerjs":"node_modules/peerjs/dist/peerjs.min.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -2094,7 +2285,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60079" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55610" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
