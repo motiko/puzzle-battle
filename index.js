@@ -5,18 +5,21 @@ import Peer from "peerjs";
 let path = location.pathname.substr(1);
 if (path) {
   console.log("!!!", path);
-  const peer = new Peer();
-  const conn = peer.connect("qwe123");
+  const peer = new Peer(null, {
+    debug: 2,
+  });
+  const conn = peer.connect(path);
   conn.on("open", () => {
     conn.send("hi!");
     console.log("sent hi");
   });
 } else {
-  const peer = new Peer("qwe123");
-  console.log(peer);
+  const peer = new Peer(null, {
+    debug: 2,
+  });
   peer.on("open", function (id) {
     console.log("My peer ID is: " + id);
-    location.replace(id);
+    // location.replace(id);
   });
   peer.on("connection", (conn) => {
     console.log("123 connected");
@@ -26,6 +29,15 @@ if (path) {
     });
     conn.on("open", () => {
       conn.send("hello!");
+    });
+    peer.on("disconnected", function () {
+      console.log("Connection lost. Please reconnect");
+    });
+    peer.on("close", function () {
+      console.log("Connection destroyed");
+    });
+    peer.on("error", function (err) {
+      console.log(err);
     });
   });
 }

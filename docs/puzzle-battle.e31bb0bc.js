@@ -2020,20 +2020,21 @@ var path = location.pathname.substr(1);
 
 if (path) {
   console.log("!!!", path);
-  var peer = new _peerjs.default();
-  var conn = peer.connect("qwe123");
+  var peer = new _peerjs.default(null, {
+    debug: 2
+  });
+  var conn = peer.connect(path);
   conn.on("open", function () {
     conn.send("hi!");
     console.log("sent hi");
   });
 } else {
-  var _peer = new _peerjs.default("qwe123");
-
-  console.log(_peer);
+  var _peer = new _peerjs.default(null, {
+    debug: 2
+  });
 
   _peer.on("open", function (id) {
-    console.log("My peer ID is: " + id);
-    location.replace(id);
+    console.log("My peer ID is: " + id); // location.replace(id);
   });
 
   _peer.on("connection", function (conn) {
@@ -2044,6 +2045,18 @@ if (path) {
     });
     conn.on("open", function () {
       conn.send("hello!");
+    });
+
+    _peer.on("disconnected", function () {
+      console.log("Connection lost. Please reconnect");
+    });
+
+    _peer.on("close", function () {
+      console.log("Connection destroyed");
+    });
+
+    _peer.on("error", function (err) {
+      console.log(err);
     });
   });
 }
