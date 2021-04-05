@@ -1935,7 +1935,7 @@ function debounceRedraw(redrawNow) {
     };
 }
 
-},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"receiver.js":[function(require,module,exports) {
+},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"host.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2043,7 +2043,7 @@ function ready() {
     conn = null;
   });
 }
-},{}],"sender.js":[function(require,module,exports) {
+},{}],"guest.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2235,9 +2235,9 @@ var t=require("./bufferbuilder").BufferBuilder,e=require("./bufferbuilder").bina
 
 var _chessground = require("chessground");
 
-var _receiver = require("./receiver");
+var _host = require("./host");
 
-var _sender = require("./sender");
+var _guest = require("./guest");
 
 var _peerjs = _interopRequireDefault(require("peerjs"));
 
@@ -2250,12 +2250,12 @@ if (module.hot) {
 var path = location.pathname.substr(1);
 
 if (path) {
-  (0, _sender.initialize)();
+  (0, _guest.initialize)();
   setTimeout(function () {
-    (0, _sender.join)(path);
+    (0, _guest.join)(path);
   }, 1000);
 } else {
-  (0, _receiver.initialize)();
+  (0, _host.initialize)();
 }
 
 var config = {
@@ -2263,7 +2263,7 @@ var config = {
 };
 var board = document.getElementById("board");
 var ground = (0, _chessground.Chessground)(board, config);
-},{"chessground":"node_modules/chessground/chessground.js","./receiver":"receiver.js","./sender":"sender.js","peerjs":"node_modules/peerjs/dist/peerjs.min.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"chessground":"node_modules/chessground/chessground.js","./host":"host.js","./guest":"guest.js","peerjs":"node_modules/peerjs/dist/peerjs.min.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
