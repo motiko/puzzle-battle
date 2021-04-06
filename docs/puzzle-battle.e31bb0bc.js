@@ -189,6 +189,61 @@ var t=require("./bufferbuilder").BufferBuilder,e=require("./bufferbuilder").bina
 "use strict";Object.defineProperty(exports,"__esModule",{value:!0});var e=require("./util"),r=require("./peer");exports.peerjs={Peer:r.Peer,util:e.util},exports.default=r.Peer,window.peerjs=exports.peerjs,window.Peer=r.Peer;
 },{"./util":"BHXf","./peer":"Hxpd"}]},{},["iTK6"], null)
 
+},{}],"dom.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.boardSize = exports.getCursor = void 0;
+
+function getCursor(id) {
+  var results = {};
+  return function () {
+    if (results[id]) return results[id];
+    var cursor = document.getElementById("cursor_" + id);
+
+    if (cursor) {
+      results[id] = cursor;
+      return cursor;
+    }
+
+    var newCursor = document.getElementById("openhand").cloneNode();
+    newCursor.className = "cursor";
+    newCursor.style.display = "block";
+    newCursor.id = "cursor_" + id;
+    newCursor.alt = "";
+    document.body.appendChild(newCursor);
+    return newCursor;
+  }();
+}
+
+exports.getCursor = getCursor;
+
+function boardSize() {
+  var boardSize;
+  return function () {
+    if (boardSize) return boardSize;
+    var board = document.getElementById("board");
+    boardSize = board.getBoundingClientRect();
+    return boardSize;
+  }();
+}
+
+exports.boardSize = boardSize;
+},{}],"utils.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.isNumeric = void 0;
+
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+exports.isNumeric = isNumeric;
 },{}],"node_modules/chessground/types.js":[function(require,module,exports) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2007,49 +2062,63 @@ function debounceRedraw(redrawNow) {
     };
 }
 
-},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"dom.ts":[function(require,module,exports) {
+},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"board.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.boardSize = exports.getCursor = void 0;
+exports.initBoard = void 0;
 
-function getCursor(id) {
-  var results = {};
-  return function () {
-    if (results[id]) return results[id];
-    var cursor = document.getElementById("cursor_" + id);
+var protocol_1 = require("./protocol");
 
-    if (cursor) {
-      results[id] = cursor;
-      return cursor;
+var chessground_1 = require("chessground");
+
+function afterMove(orig, dest, capturedPiece) {
+  protocol_1.send({
+    command: "move",
+    orig: orig,
+    dest: dest,
+    capturedPiece: capturedPiece
+  });
+}
+
+function initBoard() {
+  var board = document.getElementById("board");
+  addMouseEvents(board);
+  var config = {
+    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+    movable: {
+      free: false,
+      color: "white",
+      dests: new Map([["e2", ["e4"]]]),
+      showDests: false
+    },
+    events: {
+      move: afterMove
     }
-
-    var newCursor = document.getElementById("openhand").cloneNode();
-    newCursor.className = "cursor";
-    newCursor.style.display = "block";
-    newCursor.id = "cursor_" + id;
-    newCursor.alt = "";
-    document.body.appendChild(newCursor);
-    return newCursor;
-  }();
+  };
+  var ground = chessground_1.Chessground(board, config);
+  window.ground = ground;
 }
 
-exports.getCursor = getCursor;
+exports.initBoard = initBoard;
 
-function boardSize() {
-  var boardSize;
-  return function () {
-    if (boardSize) return boardSize;
-    var board = document.getElementById("board");
-    boardSize = board.getBoundingClientRect();
-    return boardSize;
-  }();
+function addMouseEvents(board) {
+  var timerId;
+  board.addEventListener("mousemove", function (e) {
+    if (timerId) return;
+    timerId = setTimeout(function () {
+      protocol_1.send({
+        command: "mousepos",
+        x: e.offsetX,
+        y: e.offsetY
+      });
+      timerId = undefined;
+    }, 50);
+  });
 }
-
-exports.boardSize = boardSize;
-},{}],"protocol.ts":[function(require,module,exports) {
+},{"./protocol":"protocol.ts","chessground":"node_modules/chessground/chessground.js"}],"protocol.ts":[function(require,module,exports) {
 "use strict";
 
 var __assign = this && this.__assign || function () {
@@ -2085,89 +2154,22 @@ var __importDefault = this && this.__importDefault || function (mod) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.initConnections = exports.processData = void 0;
+exports.send = exports.processData = exports.initConnections = void 0;
 
 var peerjs_1 = __importDefault(require("peerjs"));
 
-var chessground_1 = require("chessground");
-
 var dom_1 = require("./dom");
 
-function processData(data) {
-  var msg = data.message;
-  var sender = data.sender;
-  var command = data.command;
+var utils_1 = require("./utils");
 
-  switch (command) {
-    case "mousepos":
-      var cursor = dom_1.getCursor(sender);
-      var x = data.x,
-          y = data.y;
-      cursor.style.left = parseInt(dom_1.boardSize().x) + parseInt(x) + "px";
-      cursor.style.top = parseInt(dom_1.boardSize().y) + parseInt(y) + "px";
-      break;
+var board_1 = require("./board");
 
-    case "move":
-      var orig = data.orig,
-          dest = data.dest;
-      window.ground.move(orig, dest);
-  }
-}
-
-exports.processData = processData;
-
-function afterMove(orig, dest, capturedPiece) {
-  window.send({
-    command: "move",
-    orig: orig,
-    dest: dest,
-    capturedPiece: capturedPiece
-  });
-}
-
-function initBoard() {
-  var config = {
-    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
-    movable: {
-      free: false,
-      color: "white",
-      dests: new Map([["e2", ["e4"]]]),
-      showDests: false
-    },
-    events: {
-      move: afterMove
-    }
-  };
-  var board = document.getElementById("board");
-  var ground = chessground_1.Chessground(board, config);
-  window.ground = ground;
-}
-
-function ready() {
-  initBoard();
-  var timerId;
-  document.getElementById("board").addEventListener("mousemove", function (e) {
-    if (timerId) return;
-    timerId = setTimeout(function () {
-      window.send({
-        command: "mousepos",
-        x: e.offsetX,
-        y: e.offsetY
-      });
-      timerId = undefined;
-    }, 50);
-  });
-}
-
-function isNumeric(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
+var clientConnections = [];
+var hostConnection;
+var peerId = "" + Math.floor(Math.random() * Math.pow(10, 6));
+var peer = new peerjs_1.default(peerId);
 
 function initConnections() {
-  var clientConnections = [];
-  var hostConnection;
-  var peerId = "" + Math.floor(Math.random() * Math.pow(10, 6));
-  var peer = new peerjs_1.default(peerId);
   peer.on("open", function (id) {
     console.log("Connection to signaller establised.");
     console.log("Assigning id: " + id);
@@ -2175,7 +2177,7 @@ function initConnections() {
     var path = location.pathname.split("/").pop();
     console.log(path);
 
-    if (isNumeric(path)) {
+    if (utils_1.isNumeric(path)) {
       join(path);
     } else {
       window.history.pushState({
@@ -2198,7 +2200,7 @@ function initConnections() {
       broadcast(__assign(__assign({}, data), {
         peers: generatePeerList()
       }));
-      ready();
+      board_1.initBoard();
     });
     connection.on("data", function (data) {
       if (data.sender !== "SYSTEM" && data.sender !== peerId) {
@@ -2230,69 +2232,92 @@ function initConnections() {
   peer.on("error", function (error) {
     console.log(error);
   });
-
-  function reconnect() {
-    console.log("Reconnecting to signaller.");
-    peer.reconnect();
-  }
-
-  function join(hostId) {
-    hostConnection = peer.connect(hostId);
-    hostConnection.on("open", function () {
-      console.log("Connection to " + hostConnection.peer + " established.");
-      ready();
-    });
-    hostConnection.on("data", function (data) {
-      if (data.sender !== "SYSTEM" && data.sender !== peerId) {
-        processData(data);
-      }
-
-      updatePeerList(data.peers);
-    });
-    hostConnection.on("close", function () {
-      console.log("Connection to " + hostConnection.peer + " is closed.");
-      peer.destroy();
-      location.reload();
-    });
-  }
-
-  function updatePeerList(peerList) {
-    console.log("Peerlist:", peerList ? peerList : generatePeerList());
-  }
-
-  function generatePeerList() {
-    return __spreadArray(__spreadArray([], clientConnections.map(function (connection) {
-      return connection.peer;
-    })), [peerId + " (HOST)"]).join(", ");
-  }
-
-  function broadcast(data) {
-    clientConnections.forEach(function (connection) {
-      return connection.send(data);
-    });
-  }
-
-  function send(cmdData) {
-    var data = __assign({
-      sender: peerId
-    }, cmdData);
-
-    if (hostConnection) {
-      hostConnection.send(data);
-    }
-
-    if (clientConnections.length > 0) {
-      broadcast(__assign(__assign({}, data), {
-        peers: generatePeerList()
-      }));
-    }
-  }
-
-  window.send = send;
 }
 
 exports.initConnections = initConnections;
-},{"peerjs":"node_modules/peerjs/dist/peerjs.min.js","chessground":"node_modules/chessground/chessground.js","./dom":"dom.ts"}],"index.js":[function(require,module,exports) {
+
+function processData(data) {
+  var msg = data.message;
+  var sender = data.sender;
+  var command = data.command;
+
+  switch (command) {
+    case "mousepos":
+      var cursor = dom_1.getCursor(sender);
+      var x = data.x,
+          y = data.y;
+      cursor.style.left = parseInt(dom_1.boardSize().x) + parseInt(x) + "px";
+      cursor.style.top = parseInt(dom_1.boardSize().y) + parseInt(y) + "px";
+      break;
+
+    case "move":
+      var orig = data.orig,
+          dest = data.dest;
+      window.ground.move(orig, dest);
+  }
+}
+
+exports.processData = processData;
+
+function reconnect() {
+  console.log("Reconnecting to signaller.");
+  peer.reconnect();
+}
+
+function join(hostId) {
+  hostConnection = peer.connect(hostId);
+  hostConnection.on("open", function () {
+    console.log("Connection to " + hostConnection.peer + " established.");
+    board_1.initBoard();
+  });
+  hostConnection.on("data", function (data) {
+    if (data.sender !== "SYSTEM" && data.sender !== peerId) {
+      processData(data);
+    }
+
+    updatePeerList(data.peers);
+  });
+  hostConnection.on("close", function () {
+    console.log("Connection to " + hostConnection.peer + " is closed.");
+    peer.destroy();
+    location.reload();
+  });
+}
+
+function updatePeerList(peerList) {
+  console.log("Peerlist:", peerList ? peerList : generatePeerList());
+}
+
+function generatePeerList() {
+  return __spreadArray(__spreadArray([], clientConnections.map(function (connection) {
+    return connection.peer;
+  })), [peerId + " (HOST)"]).join(", ");
+}
+
+function broadcast(data) {
+  clientConnections.forEach(function (connection) {
+    return connection.send(data);
+  });
+}
+
+function send(cmdData) {
+  var data = __assign({
+    sender: peerId
+  }, cmdData);
+
+  if (hostConnection) {
+    hostConnection.send(data);
+  }
+
+  if (clientConnections.length > 0) {
+    broadcast(__assign(__assign({}, data), {
+      peers: generatePeerList()
+    }));
+  }
+}
+
+exports.send = send;
+},{"peerjs":"node_modules/peerjs/dist/peerjs.min.js","./dom":"dom.ts","./utils":"utils.ts","./board":"board.ts"}],"index.js":[function(require,module,exports) {
 "use strict";
 
 var _protocol = require("./protocol");

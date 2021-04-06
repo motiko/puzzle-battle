@@ -1,4 +1,3 @@
-
 export function getCursor(id) {
   let results = {};
   return (function () {
@@ -8,7 +7,9 @@ export function getCursor(id) {
       results[id] = cursor;
       return cursor;
     }
-    const newCursor = document.getElementById("openhand").cloneNode();
+    const newCursor = document
+      .getElementById("openhand")
+      .cloneNode() as HTMLImageElement;
     newCursor.className = "cursor";
     newCursor.style.display = "block";
     newCursor.id = `cursor_${id}`;

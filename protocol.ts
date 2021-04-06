@@ -2,70 +2,17 @@ import Peer from "peerjs";
 import { Chessground } from "chessground";
 import { getCursor, boardSize } from "./dom";
 import { Config } from "chessground/config";
+import { isNumeric } from "./utils";
+import { initBoard } from "./board";
 
-export function processData(data: any) {
-  const msg = data.message;
-  const sender = data.sender;
-  const command = data.command;
-  switch (command) {
-    case "mousepos":
-      const cursor = getCursor(sender);
-      const { x, y } = data;
-      cursor.style.left = `${parseInt(boardSize().x) + parseInt(x)}px`;
-      cursor.style.top = `${parseInt(boardSize().y) + parseInt(y)}px`;
-      break;
-    case "move":
-      const { orig, dest } = data;
-      window.ground.move(orig, dest);
-  }
-}
+var clientConnections = [];
 
-function afterMove(orig, dest, capturedPiece) {
-  window.send({ command: "move", orig, dest, capturedPiece });
-}
+var hostConnection;
 
-function initBoard() {
-  const config: Config = {
-    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
-    movable: {
-      free: false,
-      color: "white",
-      dests: new Map([["e2", ["e4"]]]),
-      showDests: false,
-    },
-    events: {
-      move: afterMove,
-    },
-  };
-  const board = document.getElementById("board");
-  const ground = Chessground(board, config);
-  window.ground = ground;
-}
-
-function ready() {
-  initBoard();
-  let timerId;
-  document.getElementById("board").addEventListener("mousemove", (e) => {
-    if (timerId) return;
-    timerId = setTimeout(() => {
-      window.send({ command: "mousepos", x: e.offsetX, y: e.offsetY });
-      timerId = undefined;
-    }, 50);
-  });
-}
-
-function isNumeric(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
+const peerId = `${Math.floor(Math.random() * 10 ** 6)}`;
+const peer = new Peer(peerId);
 
 export function initConnections() {
-  var clientConnections = [];
-
-  var hostConnection;
-
-  const peerId = `${Math.floor(Math.random() * 10 ** 6)}`;
-  const peer = new Peer(peerId);
-
   peer.on("open", (id) => {
     console.log("Connection to signaller establised.");
     console.log(`Assigning id: ${id}`);
@@ -104,7 +51,7 @@ export function initConnections() {
         ...data,
         peers: generatePeerList(),
       });
-      ready();
+      initBoard();
     });
 
     connection.on("data", (data) => {
@@ -145,68 +92,84 @@ export function initConnections() {
   peer.on("error", (error) => {
     console.log(error);
   });
+}
 
-  function reconnect() {
-    console.log(`Reconnecting to signaller.`);
-    peer.reconnect();
+export function processData(data: any) {
+  const msg = data.message;
+  const sender = data.sender;
+  const command = data.command;
+  switch (command) {
+    case "mousepos":
+      const cursor = getCursor(sender);
+      const { x, y } = data;
+      cursor.style.left = `${parseInt(boardSize().x) + parseInt(x)}px`;
+      cursor.style.top = `${parseInt(boardSize().y) + parseInt(y)}px`;
+      break;
+    case "move":
+      const { orig, dest } = data;
+      window.ground.move(orig, dest);
   }
+}
 
-  function join(hostId) {
-    hostConnection = peer.connect(hostId);
+function reconnect() {
+  console.log(`Reconnecting to signaller.`);
+  peer.reconnect();
+}
 
-    hostConnection.on("open", () => {
-      console.log(`Connection to ${hostConnection.peer} established.`);
-      ready();
-    });
+function join(hostId) {
+  hostConnection = peer.connect(hostId);
 
-    hostConnection.on("data", (data) => {
-      if (data.sender !== "SYSTEM" && data.sender !== peerId) {
-        processData(data);
-      }
+  hostConnection.on("open", () => {
+    console.log(`Connection to ${hostConnection.peer} established.`);
+    initBoard();
+  });
 
-      updatePeerList(data.peers);
-    });
-
-    hostConnection.on("close", () => {
-      console.log(`Connection to ${hostConnection.peer} is closed.`);
-
-      peer.destroy();
-
-      location.reload();
-    });
-  }
-
-  function updatePeerList(peerList?: string) {
-    console.log("Peerlist:", peerList ? peerList : generatePeerList());
-  }
-
-  function generatePeerList() {
-    return [
-      ...clientConnections.map((connection) => connection.peer),
-      `${peerId} (HOST)`,
-    ].join(", ");
-  }
-
-  function broadcast(data) {
-    clientConnections.forEach((connection) => connection.send(data));
-  }
-
-  function send(cmdData) {
-    const data = {
-      sender: peerId,
-      ...cmdData,
-    };
-
-    if (hostConnection) {
-      hostConnection.send(data);
+  hostConnection.on("data", (data) => {
+    if (data.sender !== "SYSTEM" && data.sender !== peerId) {
+      processData(data);
     }
 
-    if (clientConnections.length > 0) {
-      broadcast({
-        ...data,
-        peers: generatePeerList(),
-      });
-    }
+    updatePeerList(data.peers);
+  });
+
+  hostConnection.on("close", () => {
+    console.log(`Connection to ${hostConnection.peer} is closed.`);
+
+    peer.destroy();
+
+    location.reload();
+  });
+}
+
+function updatePeerList(peerList?: string) {
+  console.log("Peerlist:", peerList ? peerList : generatePeerList());
+}
+
+function generatePeerList() {
+  return [
+    ...clientConnections.map((connection) => connection.peer),
+    `${peerId} (HOST)`,
+  ].join(", ");
+}
+
+function broadcast(data) {
+  clientConnections.forEach((connection) => connection.send(data));
+}
+
+export function send(cmdData) {
+  const data = {
+    sender: peerId,
+    ...cmdData,
+  };
+
+  if (hostConnection) {
+    hostConnection.send(data);
   }
-  window.send = send;
+
+  if (clientConnections.length > 0) {
+    broadcast({
+      ...data,
+      peers: generatePeerList(),
+    });
+  }
 }
