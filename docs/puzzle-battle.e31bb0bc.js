@@ -2007,65 +2007,19 @@ function debounceRedraw(redrawNow) {
     };
 }
 
-},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"protocol.js":[function(require,module,exports) {
+},{"./api":"node_modules/chessground/api.js","./config":"node_modules/chessground/config.js","./state":"node_modules/chessground/state.js","./wrap":"node_modules/chessground/wrap.js","./events":"node_modules/chessground/events.js","./render":"node_modules/chessground/render.js","./svg":"node_modules/chessground/svg.js","./util":"node_modules/chessground/util.js"}],"dom.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.processData = processData;
-exports.initConnections = initConnections;
-
-var _peerjs = _interopRequireDefault(require("peerjs"));
-
-var _chessground = require("chessground");
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
-
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
-
-function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter); }
-
-function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
-
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
-
-function processData(data) {
-  var msg = data.message;
-  var sender = data.sender;
-  var command = data.command;
-
-  switch (command) {
-    case "mousepos":
-      var cursor = getCursor(sender);
-      var x = data.x,
-          y = data.y;
-      cursor.style.left = "".concat(parseInt(boardSize().x) + parseInt(x), "px");
-      cursor.style.top = "".concat(parseInt(boardSize().y) + parseInt(y), "px");
-      break;
-
-    case "move":
-      var orig = data.orig,
-          dest = data.dest;
-      ground.move(orig, dest);
-  }
-}
+exports.boardSize = exports.getCursor = void 0;
 
 function getCursor(id) {
   var results = {};
   return function () {
     if (results[id]) return results[id];
-    var cursor = document.getElementById("cursor_".concat(id));
+    var cursor = document.getElementById("cursor_" + id);
 
     if (cursor) {
       results[id] = cursor;
@@ -2075,12 +2029,14 @@ function getCursor(id) {
     var newCursor = document.getElementById("openhand").cloneNode();
     newCursor.className = "cursor";
     newCursor.style.display = "block";
-    newCursor.id = "cursor_".concat(id);
+    newCursor.id = "cursor_" + id;
     newCursor.alt = "";
     document.body.appendChild(newCursor);
     return newCursor;
   }();
 }
+
+exports.getCursor = getCursor;
 
 function boardSize() {
   var boardSize;
@@ -2092,8 +2048,76 @@ function boardSize() {
   }();
 }
 
+exports.boardSize = boardSize;
+},{}],"protocol.ts":[function(require,module,exports) {
+"use strict";
+
+var __assign = this && this.__assign || function () {
+  __assign = Object.assign || function (t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+
+      for (var p in s) {
+        if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+      }
+    }
+
+    return t;
+  };
+
+  return __assign.apply(this, arguments);
+};
+
+var __spreadArray = this && this.__spreadArray || function (to, from) {
+  for (var i = 0, il = from.length, j = to.length; i < il; i++, j++) {
+    to[j] = from[i];
+  }
+
+  return to;
+};
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.initConnections = exports.processData = void 0;
+
+var peerjs_1 = __importDefault(require("peerjs"));
+
+var chessground_1 = require("chessground");
+
+var dom_1 = require("./dom");
+
+function processData(data) {
+  var msg = data.message;
+  var sender = data.sender;
+  var command = data.command;
+
+  switch (command) {
+    case "mousepos":
+      var cursor = dom_1.getCursor(sender);
+      var x = data.x,
+          y = data.y;
+      cursor.style.left = parseInt(dom_1.boardSize().x) + parseInt(x) + "px";
+      cursor.style.top = parseInt(dom_1.boardSize().y) + parseInt(y) + "px";
+      break;
+
+    case "move":
+      var orig = data.orig,
+          dest = data.dest;
+      window.ground.move(orig, dest);
+  }
+}
+
+exports.processData = processData;
+
 function afterMove(orig, dest, capturedPiece) {
-  send({
+  window.send({
     command: "move",
     orig: orig,
     dest: dest,
@@ -2115,7 +2139,7 @@ function initBoard() {
     }
   };
   var board = document.getElementById("board");
-  var ground = (0, _chessground.Chessground)(board, config);
+  var ground = chessground_1.Chessground(board, config);
   window.ground = ground;
 }
 
@@ -2125,7 +2149,7 @@ function ready() {
   document.getElementById("board").addEventListener("mousemove", function (e) {
     if (timerId) return;
     timerId = setTimeout(function () {
-      send({
+      window.send({
         command: "mousepos",
         x: e.offsetX,
         y: e.offsetY
@@ -2142,12 +2166,12 @@ function isNumeric(n) {
 function initConnections() {
   var clientConnections = [];
   var hostConnection;
-  var peerId = parseInt(Math.random() * Math.pow(10, 6));
-  var peer = new _peerjs.default(peerId);
+  var peerId = "" + Math.floor(Math.random() * Math.pow(10, 6));
+  var peer = new peerjs_1.default(peerId);
   peer.on("open", function (id) {
     console.log("Connection to signaller establised.");
-    console.log("Assigning id: ".concat(id));
-    console.log("Your id is: ".concat(id));
+    console.log("Assigning id: " + id);
+    console.log("Your id is: " + id);
     var path = location.pathname.split("/").pop();
     console.log(path);
 
@@ -2155,23 +2179,23 @@ function initConnections() {
       join(path);
     } else {
       window.history.pushState({
-        path: "".concat(location.pathname, "/").concat(peer.id)
+        path: location.pathname + "/" + peer.id
       }, "", location + peer.id);
     }
 
     updatePeerList();
   });
   peer.on("connection", function (connection) {
-    console.log("".concat(connection.peer, " attempting to establish connection."));
+    console.log(connection.peer + " attempting to establish connection.");
     connection.on("open", function () {
-      console.log("Connection to ".concat(connection.peer, " established."));
-      clientConnections = [].concat(_toConsumableArray(clientConnections), [connection]);
+      console.log("Connection to " + connection.peer + " established.");
+      clientConnections = __spreadArray(__spreadArray([], clientConnections), [connection]);
       var data = {
         sender: "SYSTEM",
-        message: "".concat(connection.peer, " joined.")
+        message: connection.peer + " joined."
       };
       updatePeerList();
-      broadcast(_objectSpread(_objectSpread({}, data), {}, {
+      broadcast(__assign(__assign({}, data), {
         peers: generatePeerList()
       }));
       ready();
@@ -2181,21 +2205,21 @@ function initConnections() {
         processData(data);
       }
 
-      broadcast(_objectSpread(_objectSpread({}, data), {}, {
+      broadcast(__assign(__assign({}, data), {
         peers: generatePeerList()
       }));
     });
     connection.on("close", function () {
-      console.log("Connection to ".concat(connection.peer, " is closed."));
+      console.log("Connection to " + connection.peer + " is closed.");
       clientConnections = clientConnections.filter(function (c) {
         return c.peer !== connection.peer;
       });
       var data = {
         sender: "SYSTEM",
-        message: "".concat(connection.peer, " left.")
+        message: connection.peer + " left."
       };
       updatePeerList();
-      broadcast(_objectSpread(_objectSpread({}, data), {}, {
+      broadcast(__assign(__assign({}, data), {
         peers: generatePeerList()
       }));
     });
@@ -2215,7 +2239,7 @@ function initConnections() {
   function join(hostId) {
     hostConnection = peer.connect(hostId);
     hostConnection.on("open", function () {
-      console.log("Connection to ".concat(hostConnection.peer, " established."));
+      console.log("Connection to " + hostConnection.peer + " established.");
       ready();
     });
     hostConnection.on("data", function (data) {
@@ -2226,7 +2250,7 @@ function initConnections() {
       updatePeerList(data.peers);
     });
     hostConnection.on("close", function () {
-      console.log("Connection to ".concat(hostConnection.peer, " is closed."));
+      console.log("Connection to " + hostConnection.peer + " is closed.");
       peer.destroy();
       location.reload();
     });
@@ -2237,9 +2261,9 @@ function initConnections() {
   }
 
   function generatePeerList() {
-    return [].concat(_toConsumableArray(clientConnections.map(function (connection) {
+    return __spreadArray(__spreadArray([], clientConnections.map(function (connection) {
       return connection.peer;
-    })), ["".concat(peerId, " (HOST)")]).join(", ");
+    })), [peerId + " (HOST)"]).join(", ");
   }
 
   function broadcast(data) {
@@ -2249,7 +2273,7 @@ function initConnections() {
   }
 
   function send(cmdData) {
-    var data = _objectSpread({
+    var data = __assign({
       sender: peerId
     }, cmdData);
 
@@ -2258,7 +2282,7 @@ function initConnections() {
     }
 
     if (clientConnections.length > 0) {
-      broadcast(_objectSpread(_objectSpread({}, data), {}, {
+      broadcast(__assign(__assign({}, data), {
         peers: generatePeerList()
       }));
     }
@@ -2266,7 +2290,9 @@ function initConnections() {
 
   window.send = send;
 }
-},{"peerjs":"node_modules/peerjs/dist/peerjs.min.js","chessground":"node_modules/chessground/chessground.js"}],"index.js":[function(require,module,exports) {
+
+exports.initConnections = initConnections;
+},{"peerjs":"node_modules/peerjs/dist/peerjs.min.js","chessground":"node_modules/chessground/chessground.js","./dom":"dom.ts"}],"index.js":[function(require,module,exports) {
 "use strict";
 
 var _protocol = require("./protocol");
@@ -2276,7 +2302,7 @@ if (module.hot) {
 }
 
 (0, _protocol.initConnections)();
-},{"./protocol":"protocol.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./protocol":"protocol.ts"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -2304,7 +2330,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "65436" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50444" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

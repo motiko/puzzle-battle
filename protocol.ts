@@ -1,7 +1,9 @@
 import Peer from "peerjs";
 import { Chessground } from "chessground";
+import { getCursor, boardSize } from "./dom";
+import { Config } from "chessground/config";
 
-export function processData(data) {
+export function processData(data: any) {
   const msg = data.message;
   const sender = data.sender;
   const command = data.command;
@@ -14,45 +16,16 @@ export function processData(data) {
       break;
     case "move":
       const { orig, dest } = data;
-      ground.move(orig, dest);
+      window.ground.move(orig, dest);
   }
 }
 
-function getCursor(id) {
-  let results = {};
-  return (function () {
-    if (results[id]) return results[id];
-    const cursor = document.getElementById(`cursor_${id}`);
-    if (cursor) {
-      results[id] = cursor;
-      return cursor;
-    }
-    const newCursor = document.getElementById("openhand").cloneNode();
-    newCursor.className = "cursor";
-    newCursor.style.display = "block";
-    newCursor.id = `cursor_${id}`;
-    newCursor.alt = "";
-    document.body.appendChild(newCursor);
-    return newCursor;
-  })();
-}
-
-function boardSize() {
-  let boardSize;
-  return (function () {
-    if (boardSize) return boardSize;
-    const board = document.getElementById("board");
-    boardSize = board.getBoundingClientRect();
-    return boardSize;
-  })();
-}
-
 function afterMove(orig, dest, capturedPiece) {
-  send({ command: "move", orig, dest, capturedPiece });
+  window.send({ command: "move", orig, dest, capturedPiece });
 }
 
 function initBoard() {
-  const config = {
+  const config: Config = {
     fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
     movable: {
       free: false,
@@ -75,7 +48,7 @@ function ready() {
   document.getElementById("board").addEventListener("mousemove", (e) => {
     if (timerId) return;
     timerId = setTimeout(() => {
-      send({ command: "mousepos", x: e.offsetX, y: e.offsetY });
+      window.send({ command: "mousepos", x: e.offsetX, y: e.offsetY });
       timerId = undefined;
     }, 50);
   });
@@ -90,7 +63,7 @@ export function initConnections() {
 
   var hostConnection;
 
-  const peerId = parseInt(Math.random() * 10 ** 6);
+  const peerId = `${Math.floor(Math.random() * 10 ** 6)}`;
   const peer = new Peer(peerId);
 
   peer.on("open", (id) => {
@@ -203,7 +176,7 @@ export function initConnections() {
     });
   }
 
-  function updatePeerList(peerList) {
+  function updatePeerList(peerList?: string) {
     console.log("Peerlist:", peerList ? peerList : generatePeerList());
   }
 
