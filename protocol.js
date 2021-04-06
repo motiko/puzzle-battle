@@ -4,16 +4,17 @@ import { Chessground } from "chessground";
 export function processData(data) {
   const msg = data.message;
   const sender = data.sender;
-  const dataArr = msg.split(":");
-  const command = dataArr[0];
+  const command = data.command;
   switch (command) {
     case "mousepos":
       const cursor = getCursor(sender);
-      const coords = dataArr[1].split(",");
-      const [x, y] = coords;
+      const { x, y } = data;
       cursor.style.left = `${parseInt(boardSize().x) + parseInt(x)}px`;
       cursor.style.top = `${parseInt(boardSize().y) + parseInt(y)}px`;
       break;
+    case "move":
+      const { orig, dest } = data;
+      ground.move(orig, dest);
   }
 }
 
@@ -46,6 +47,10 @@ function boardSize() {
   })();
 }
 
+function afterMove(orig, dest, capturedPiece) {
+  send({ command: "move", orig, dest, capturedPiece });
+}
+
 function initBoard() {
   const config = {
     fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
@@ -55,6 +60,9 @@ function initBoard() {
       dests: new Map([["e2", ["e4"]]]),
       showDests: false,
     },
+    events: {
+      move: afterMove,
+    },
   };
   const board = document.getElementById("board");
   const ground = Chessground(board, config);
@@ -63,8 +71,13 @@ function initBoard() {
 
 function ready() {
   initBoard();
+  let timerId;
   document.getElementById("board").addEventListener("mousemove", (e) => {
-    send(`mousepos:${e.offsetX},${e.offsetY}`);
+    if (timerId) return;
+    timerId = setTimeout(() => {
+      send({ command: "mousepos", x: e.offsetX, y: e.offsetY });
+      timerId = undefined;
+    }, 50);
   });
 }
 
@@ -122,7 +135,6 @@ export function initConnections() {
     });
 
     connection.on("data", (data) => {
-      // console.log("Recvied data:\n", data);
       if (data.sender !== "SYSTEM" && data.sender !== peerId) {
         processData(data);
       }
@@ -175,8 +187,7 @@ export function initConnections() {
     });
 
     hostConnection.on("data", (data) => {
-      console.log("Recvied data:\n", data);
-      if (data.sender !== "SYSTEM") {
+      if (data.sender !== "SYSTEM" && data.sender !== peerId) {
         processData(data);
       }
 
@@ -207,18 +218,16 @@ export function initConnections() {
     clientConnections.forEach((connection) => connection.send(data));
   }
 
-  function send(message) {
+  function send(cmdData) {
     const data = {
       sender: peerId,
-      message,
+      ...cmdData,
     };
 
     if (hostConnection) {
-      console.log("SSS" + JSON.stringify(data));
       hostConnection.send(data);
     }
 
-    // host send
     if (clientConnections.length > 0) {
       broadcast({
         ...data,
