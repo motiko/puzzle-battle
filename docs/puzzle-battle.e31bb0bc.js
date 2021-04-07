@@ -2154,7 +2154,7 @@ var __importDefault = this && this.__importDefault || function (mod) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.send = exports.processData = exports.initConnections = void 0;
+exports.processData = exports.initConnections = exports.send = void 0;
 
 var peerjs_1 = __importDefault(require("peerjs"));
 
@@ -2169,13 +2169,29 @@ var hostConnection;
 var peerId = "" + Math.floor(Math.random() * Math.pow(10, 6));
 var peer = new peerjs_1.default(peerId);
 
+function send(cmdData) {
+  var data = __assign({
+    sender: peerId
+  }, cmdData);
+
+  if (hostConnection) {
+    hostConnection.send(data);
+  }
+
+  if (clientConnections.length > 0) {
+    broadcast(__assign(__assign({}, data), {
+      peers: generatePeerList()
+    }));
+  }
+}
+
+exports.send = send;
+
 function initConnections() {
   peer.on("open", function (id) {
     console.log("Connection to signaller establised.");
-    console.log("Assigning id: " + id);
     console.log("Your id is: " + id);
     var path = location.pathname.split("/").pop();
-    console.log(path);
 
     if (utils_1.isNumeric(path)) {
       join(path);
@@ -2299,24 +2315,6 @@ function broadcast(data) {
     return connection.send(data);
   });
 }
-
-function send(cmdData) {
-  var data = __assign({
-    sender: peerId
-  }, cmdData);
-
-  if (hostConnection) {
-    hostConnection.send(data);
-  }
-
-  if (clientConnections.length > 0) {
-    broadcast(__assign(__assign({}, data), {
-      peers: generatePeerList()
-    }));
-  }
-}
-
-exports.send = send;
 },{"peerjs":"node_modules/peerjs/dist/peerjs.min.js","./dom":"dom.ts","./utils":"utils.ts","./board":"board.ts"}],"index.js":[function(require,module,exports) {
 "use strict";
 
@@ -2355,7 +2353,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50444" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58841" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

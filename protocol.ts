@@ -12,14 +12,30 @@ var hostConnection;
 const peerId = `${Math.floor(Math.random() * 10 ** 6)}`;
 const peer = new Peer(peerId);
 
+export function send(cmdData) {
+  const data = {
+    sender: peerId,
+    ...cmdData,
+  };
+
+  if (hostConnection) {
+    hostConnection.send(data);
+  }
+
+  if (clientConnections.length > 0) {
+    broadcast({
+      ...data,
+      peers: generatePeerList(),
+    });
+  }
+}
+
 export function initConnections() {
   peer.on("open", (id) => {
     console.log("Connection to signaller establised.");
-    console.log(`Assigning id: ${id}`);
     console.log(`Your id is: ${id}`);
 
     let path = location.pathname.split("/").pop();
-    console.log(path);
     if (isNumeric(path)) {
       join(path);
     } else {
@@ -156,20 +172,3 @@ function broadcast(data) {
   clientConnections.forEach((connection) => connection.send(data));
 }
 
-export function send(cmdData) {
-  const data = {
-    sender: peerId,
-    ...cmdData,
-  };
-
-  if (hostConnection) {
-    hostConnection.send(data);
-  }
-
-  if (clientConnections.length > 0) {
-    broadcast({
-      ...data,
-      peers: generatePeerList(),
-    });
-  }
-}
