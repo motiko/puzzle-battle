@@ -10,8 +10,8 @@
     "peerjs": "^1.3.1"
   },
   "scripts": {
-    "dev": "parcel index.html --port 3000 --out-dir docs/",
-    "build": "NODE_ENV=production parcel build index.html --public-url ./ --out-dir docs/"
+    "dev": "parcel index.html --port 3000 --out-dir dist/",
+    "build": "NODE_ENV=production parcel build index.html --public-url ./ --out-dir dist/"
   },
   "devDependencies": {
     "parcel-bundler": "^1.12.4",
