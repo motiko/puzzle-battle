@@ -1,0 +1,10 @@
+.cursor {
+  position: fixed;
+  display: block;
+  z-index: 3;
+  width: 25px;
+  height: 25px;
+}
+
+
+/*# sourceMappingURL=/main.af46ece4.css.map */

@@ -1,20 +1,35 @@
 import { send } from "./protocol";
 import { Config } from "chessground/config";
 import { Chessground } from "chessground";
+import { getRandomPuzzle } from "./puzzles";
 
 function afterMove(orig, dest, capturedPiece) {
   send({ command: "move", orig, dest, capturedPiece });
+  window.ground.set({
+    movable: { color: oppositeColor(window.ground.state.movable.color) },
+  });
 }
+
+function oppositeColor(color) {
+  return color === "white" ? "black" : "white";
+}
+
+function getColorFromFen(fen) {
+  const colorChar = fen.split(" ")[1];
+  return colorChar === "w" ? "white" : "black";
+}
+
+const puzzle = getRandomPuzzle();
 
 export function initBoard() {
   const board = document.getElementById("board");
   addMouseEvents(board);
+
   const config: Config = {
-    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+    fen: puzzle.FEN,
     movable: {
-      free: false,
-      color: "white",
-      dests: new Map([["e2", ["e4"]]]),
+      free: true,
+      color: getColorFromFen(puzzle.FEN),
       showDests: false,
     },
     events: {
