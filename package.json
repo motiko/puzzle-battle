@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "parcel index.html --port 3000 --out-dir dist/",
     "build": "NODE_ENV=production parcel build index.html --public-url ./ --out-dir dist/",
-    "start": "node server.js"
+    "start": "node dist/server.js"
   },
   "devDependencies": {
     "parcel-bundler": "^1.12.4",
