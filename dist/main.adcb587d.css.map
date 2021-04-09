@@ -1,0 +1,1 @@
+{"version":3,"sources":["main.css"],"names":[],"mappings":"AAAA,QACE,cAAe,CACf,aAAc,CACd,SAAU,CACV,UAAW,CACX,WACF","file":"main.adcb587d.css","sourceRoot":"..","sourcesContent":[".cursor {\n  position: fixed;\n  display: block;\n  z-index: 3;\n  width: 25px;\n  height: 25px;\n}\n"]}
