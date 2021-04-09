@@ -1,6 +1,14 @@
-const express = require('express')
+const express = require("express");
 const PORT = process.env.PORT || 3000;
-const INDEX = './index.html';
+const INDEX = "./index.html";
+const { Server } = require("ws");
+
+const wss = new Server({ server });
+
+wss.on("connection", (ws) => {
+  console.log("Client connected");
+  ws.on("close", () => console.log("Client disconnected"));
+});
 
 const server = express()
   .use((req, res) => res.sendFile(INDEX, { root: __dirname }))
